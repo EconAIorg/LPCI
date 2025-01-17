@@ -29,19 +29,17 @@ We consider a dataset consisting of observations ${(X_t^{(g)}, Y_t^{(g)})\}_{t=1
 - $$Y_t^{(g)} \in \mathbb{R}$$ is a continuous scalar representing the target variable for group $g$ at time $t$.
 - $$X_t^{(g)} \in \mathbb{R}^d$$ consists of d-dimensional features associated with group $g$ at time $t$.
 
-This package enables generating prediction intervals for panel data in a regression setting, where observations are indexed both by time $t$ and group $g$.
-
-Data points are exchangeable if the joint probability distribution is invariant to any permutation of them. This assumption is usually what enables the conformal prediction framework to theoretically prove that coverage guarantees are ensured and are at least equal to the confidence level. Nonetheless, in a panel data setting where we have temporal dependence, the exchageability assumption does not hold. The LPCI is a framework where we can provide asymptotic coverage guarantees - cross-sectional (marginal) and longitudinal (conditional) - beyond the exchageability assumption. The authors make the reasonable assumption that the groups are exchangeable. 
+Data points are exchangeable if the joint probability distribution is invariant to any permutation of them. This assumption is typically what allows the conformal prediction framework to theoretically prove that the coverage guarantees are met and are at least equal to the specified confidence level. Nonetheless, in a panel data setting where we have temporal dependence, the exchageability assumption does not hold. The LPCI is a framework where we can provide asymptotic coverage guarantees - cross-sectional (marginal) and longitudinal (conditional) - beyond the exchageability assumption. The authors make the reasonable assumption that the groups are exchangeable. 
 
 The LPCI algorithm uses the split or inductive conformal inference method, that is, data should be seperated into three sets: training, calibration and test. The main idea is to use the non-conformity score (e.g. residuals) in the calibration set to obtain uncertainty intervals for the test points.
 
-Further, in alignment with other conformal prediction methods, is model-agnostic i.e. it can be applied irrespective of the algorithm used to generate point predictions.
+Furthermore, similar to other conformal prediction methods, the approach is model-agnostic i.e. it can be applied irrespective of the algorithm used to generate point predictions.
 
 ## LPCI algorithm 
 
 The general procedure is as follows:
 
-### 1: Train model and generate point predictions for the calibration set 
+### 1: Train model and generate point predictions for the calibration & test set 
 
 Split the dataset into three sets - training, calibration and testing:
 
@@ -57,12 +55,15 @@ $$
 \mathcal{D}_{\text{test}} = \{ (X_t^{(g)}, Y_t^{(g)}) \mid t \in \text{test} \}
 $$
 
-Train a model $\widehat{f}$ on $\mathcal{D}_{\text{train}}$ and generate point predictions for the calibration set: 
+Train a model $\widehat{f}$ on $\mathcal{D}_{\text{train}}$ and generate point predictions for the calibration & test set: 
 
 $$
 \widehat{Y}\_{t}^{(g)} = \widehat{f}(X\_{t}^{(g)}), \quad \text{for } X\_{t}^{(g)} \in \mathcal{D}_{\text{cal}}
 $$
 
+$$
+\widetilde{Y}\_{t}^{(g)} = \widehat{f}(X\_{t}^{(g)}), \quad \text{for } X\_{t}^{(g)} \in \mathcal{D}_{\text{test}}
+$$
 
 ### 2: Compute non-conformity score 
 
@@ -108,7 +109,7 @@ Unique group identifiers should also be included for each group. The only method
 
 Additional exogenous features can be included if they are relevant to the modeling task.
 
-### Step 4: Tune Quantile Random Forest
+### 4: Tune Quantile Random Forest
 
 This step involves training a Quantile Regression Forest (QRF) model to estimate conditional quantiles of the residuals. The QRF is trained on the features generated in step 3. 
 
