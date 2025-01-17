@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lpci"
-version = "0.1.0"
+version = "v0.1.0"
 description = "This is a package to implement the LPCI algorithm for a regression forecasting model."
 authors = [
     "BenSeimon <benjamin.seimon@bse.eu>",
