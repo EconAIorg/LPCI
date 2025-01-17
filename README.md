@@ -4,7 +4,7 @@
 
 This algorithm, based on the confromal inference framework, is used to obtain prediction intervals (quantify uncertainty) when working with panel data in a regression setting. 
 
-## Instalation 
+## Installation 
 
 You can install the package using pip: 
 
@@ -202,7 +202,7 @@ Longitudinal coverage is asymptotic in t and conditional over the temporal dimen
 
 ## Background
 
-Work on LPCI algorithm started at [EconAI](https://www.linkedin.com/company/econai/) in September 2024.
+Work on LPCI algorithm started at [EconAI](https://www.linkedin.com/company/econ-ai/) in September 2024.
 
 ## Contributing
 
