@@ -33,11 +33,13 @@ This package enables generating prediction intervals for panel data in a regress
 
 Data points are exchangeable if the joint probability distribution is invariant to any permutation of them. This assumption is usually what enables the conformal prediction framework to theoretically prove that coverage guarantees are ensured and are at least equal to the confidence level. Nonetheless, in a panel data setting where we have temporal dependence, the exchageability assumption does not hold. The LPCI is a framework where we can provide asymptotic coverage guarantees - cross-sectional (marginal) and longitudinal (conditional) - beyond the exchageability assumption. The authors make the reasonable assumption that the groups are exchangeable. 
 
-The LPCI algorithm uses the split or inductive conformal inference method, that is, data should be seperated into three sets: training, calibration and test. The main idea is to use the non-conformity score (e.g. residuals) in the calibration set to obtain uncertainty intervals for the test points. 
+The LPCI algorithm uses the split or inductive conformal inference method, that is, data should be seperated into three sets: training, calibration and test. The main idea is to use the non-conformity score (e.g. residuals) in the calibration set to obtain uncertainty intervals for the test points.
+
+Further, in alignment with other conformal prediction methods, is model-agnostic i.e. it can be applied irrespective of the algorithm used to generate point predictions.
 
 ## LPCI algorithm 
 
-One of the virtues of Conformal Prediction is that it's model agnostic. The general procedure is as follows:
+The general procedure is as follows:
 
 ### 1: Train model and generate point predictions for the calibration set 
 
