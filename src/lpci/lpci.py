@@ -45,6 +45,7 @@ class LPCI:
 
     time_col: str
         Name of the column containing the time identifier.
+
     preds_col: str
         Name of the column containing the point predictions of the model.
 
@@ -291,7 +292,7 @@ class LPCI:
                 f"Everything is fine. The first test set prediction use a model fitted on {common_time}."
             )
     @staticmethod
-    def process_split(args):
+    def predict_split_mp(args):
         """
         Helper method for multiprocessing.
 
@@ -855,7 +856,7 @@ class LPCI:
                 for i, (_, test_indices) in enumerate(panel_split.split())
             ]
             with mp.Pool(processes=num_processes) as pool:
-                test_preds = pool.map(LPCI.process_split, args)
+                test_preds = pool.map(LPCI.predict_split_mp, args)
 
         # Unpack the test_preds into the interval_df
         for (preds, index) in test_preds:

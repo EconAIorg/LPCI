@@ -78,26 +78,6 @@ class EvaluateLPCI:
 
         return coverage
 
-    def _convert_ln_to_abs(self, df: pd.DataFrame, col: str):
-        """
-        Function that converts a variable in ln terms to absolute terms
-
-        Args
-        -----
-        df: pd.DataFrame
-            The DataFrame containing the variable to convert.
-
-        col: str
-            The column to convert to absolute terms.
-
-        Returns
-        ------
-        pd.Series
-            The variable in absolute terms.
-        """
-
-        return np.exp(df[col]) - 1
-
     def overall_coverage(self):
         """
         Compute the overall coverage of the prediction intervals.
@@ -125,7 +105,7 @@ class EvaluateLPCI:
         )
         return coverage
 
-    def coverage_by_bin(self, bins: list, bin_labels: str, ln_to_absolute: bool):
+    def coverage_by_bin(self, bins: list, bin_labels: str):
         """
         Function that compute coverage of the prediction intervals by bin.
 
@@ -148,11 +128,6 @@ class EvaluateLPCI:
         """
 
         df = self.df.copy()
-
-        # convert to absolute terms if specified
-        if ln_to_absolute:
-            for col in [self.true_col, "lower_conf", "upper_conf"]:
-                df[col] = self._convert_ln_to_abs(df, col)
 
         # Bin the true values
         df[f"{self.true_col}_bin"] = pd.cut(
