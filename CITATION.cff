@@ -1,1 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Seimon"
+  given-names: "Ben"
+  orcid: "https://orcid.org/0009-0006-2655-4097"
+- family-names: "Talvi"
+  given-names: "Ramón"
+  orcid: "https://orcid.org/0009-0004-0756-9168"
+
+title: "LPCI"
+doi: https://doi.org/10.5281/zenodo.14680284
+version: 0.1.0
+date-released: 2025-01-17 
+url: "https://github.com/EconAIorg/LPCI"
 
