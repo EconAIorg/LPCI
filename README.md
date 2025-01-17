@@ -1,3 +1,4 @@
+[![PyPI version](https://img.shields.io/pypi/v/lpci.svg)](https://pypi.org/project/lpci/)
 [![DOI](https://zenodo.org/badge/918124050.svg)](https://doi.org/10.5281/zenodo.14680284)
 
 # LPCI algorithm: a Conformal Inference method for panel data regression
