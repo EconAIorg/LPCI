@@ -1,7 +1,8 @@
 
-We welcome contributions from the community! Whether it’s reporting a bug, suggesting a feature, improving documentation, or submitting a pull request, your input is highly valued.
 
-# LPCI algorithm: a Conformal Inference method for panel data
+# LPCI algorithm: a Conformal Inference method for panel data regression
+
+This algorithm, based on the confromal inference framework, is used to obtain prediction intervals (quantify uncertainty) when working with panel data in a regression setting. 
 
 ## Instalation 
 
@@ -18,7 +19,9 @@ The package implements the Longitudinal Prediction Conformal Inference (LPCI) al
 
 The authors prove that the LPCI method asymptotically ensures both longitudinal conditional coverage and marginal cross-sectional coverage. In theory, with sufficient data points, both types of coverage should be at least equal to the confidence level.
 
-Below we provide a mathematical overview, much of which draws directly from Batra et al. (2023). For those seeking a guide to practical implementation, please refer to notebooks/tutorial.ipynb.
+Below we provide a mathematical overview, much of which draws directly from Batra et al. (2023). For those seeking a guide to practical implementation, please refer to 
+[notebook](./notebooks/tutorial.ipynb).
+
 
 ## Model assumptions
 
@@ -197,4 +200,16 @@ $$
 
 Longitudinal coverage is asymptotic in t and conditional over the temporal dimension.
 
+## Background
+
+Work on LPCI algorithm started at [EconAI](https://www.linkedin.com/company/econai/) in September 2024.
+
+## Contributing
+
+We welcome contributions from the community! Whether it’s reporting a bug, suggesting a feature, improving documentation, or submitting a pull request, your input is highly valued.
+
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
 
