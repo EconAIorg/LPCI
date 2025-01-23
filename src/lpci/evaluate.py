@@ -117,8 +117,6 @@ class EvaluateLPCI:
         bin_labels
             A list of labels to use for the bins.
 
-        ln_to_absolute
-            A boolean indicating whether to convert the true values to absolute values before binning.
 
         Returns
         -------
