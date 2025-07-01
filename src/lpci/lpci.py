@@ -812,13 +812,12 @@ class LPCI:
 
         # Create an empty DataFrame to store the predictions
         interval_df = panel_split.gen_test_labels(df[self.id_vars + [target_col]])
-
-        #merge back on the original predictions and target from the test set
-        interval_df = interval_df.reset_index() #to preserve the index
-        interval_df = interval_df.merge(self.test_preds[self.id_vars + [self.preds_col, self.true_col]], on = self.id_vars, how = 'left')
-        interval_df = interval_df.set_index('index')
-        interval_df.index.name = None
-
+            
+        interval_df = interval_df.join(
+            self.test_preds.set_index(self.id_vars)[[self.preds_col, self.true_col]],
+            on=self.id_vars
+        )
+            
         # Initialize the quantile regressor
         qrf = RandomForestQuantileRegressor(q=quantiles, **best_params)
 
