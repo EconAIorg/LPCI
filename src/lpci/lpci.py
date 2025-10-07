@@ -315,7 +315,7 @@ class LPCI:
         preds = estimator.predict(X_test)
         return preds.T, X_test.index
 
-    def nonconformity_score(self, df: pd.DataFrame) -> pd.DataFrame:
+    def nonconformity_score(self, df: pd.DataFrame, standarize_residuals: bool = False, epsilon: float = 1) -> pd.DataFrame:
         """
         Method that calculates the nonconformity score of the model on a given dataset.
         Since this is a class for implementing LPCI on a regression model, the nonconformity score is the residuals.
@@ -327,6 +327,12 @@ class LPCI:
             DataFrame containing the predictions of the model.
             It must contain the columns provided upon initialization: [unit_col, time_col, preds_col, true_col]
             The time_col should represent the time of the prediction, not the time of the true values.
+        
+        standarize_residuals: bool
+            Whether to standarize the residuals.
+        
+        epsilon: float
+            The epsilon value to use for standarizing the residuals.
 
         Returns
         ----
@@ -334,10 +340,14 @@ class LPCI:
         pd.DataFrame
             DataFrame containing the nonconformity scores of the model.
         """
-
         df = df.copy()
-        df["residuals"] = df[self.true_col] - df[self.preds_col]
 
+        if standarize_residuals:
+            scale = df[self.preds_col].abs() + epsilon           # s(X, ŷ)
+            df["scale"] = scale
+            df["residuals_std"] = (df[self.true_col] - df[self.preds_col]) / scale
+        else:
+            df["residuals"] = df[self.true_col] - df[self.preds_col]
         return df
 
     def lag(
@@ -443,6 +453,8 @@ class LPCI:
         adjust: bool = True,
         fillna: Union[float, int] = None,
         cat_method: dict = None,
+        standarize_residuals: bool = False,
+        epsilon: float = 1
     ):
         """
         Method that generates X_train and y_train for the quantile regression forest.
@@ -482,14 +494,16 @@ class LPCI:
         """
 
         # first generate nonconformity scores (residuals)
-        df = self.nonconformity_score(self.df)
+        df = self.nonconformity_score(self.df, standarize_residuals, epsilon)
 
         # now generate the lagged residuals
         lags = np.arange(1, window_size + 1)
 
+        col = "residuals_std" if standarize_residuals else "residuals"
+
         df = self.lag(
             df=df, 
-            col="residuals", 
+            col=col, 
             lags=lags, 
             decay=decay,
             adjust=adjust,
@@ -501,7 +515,7 @@ class LPCI:
 
         # collect columns
         features = [x for x in df.columns if "lag" in x]
-        target_col = "residuals"
+        target_col = col
 
         # now generate dummy variables for the units if group_identifier is specified
         if cat_method is None:
@@ -750,7 +764,9 @@ class LPCI:
         n_quantiles:int = 5,
         panel_split_kwargs:dict = None,
         n_jobs:int = -1,
-        return_fitted_estimators:bool = False
+        return_fitted_estimators:bool = False,
+        standarize_residuals: bool = False,
+        epsilon: float = 1
         ):
         
         """
@@ -789,6 +805,12 @@ class LPCI:
 
         return_fitted_estimators: bool
             Whether to return the fitted estimators.
+        
+        standarize_residuals: bool
+            Whether residuals were standarized in non-conformity score computation.
+        
+        epsilon: float
+            The epsilon value to use for standarizing the residuals.
 
         Returns
         ------
@@ -818,6 +840,11 @@ class LPCI:
         interval_df = interval_df.merge(self.test_preds[self.id_vars + [self.preds_col, self.true_col]], on = self.id_vars, how = 'left')
         interval_df = interval_df.set_index('index')
         interval_df.index.name = None
+
+        if standarize_residuals:
+            assert target_col == "residuals_std", \
+                "If standarize_residuals=True, target_col must be 'residuals_std'."
+            interval_df["scale"] = interval_df[self.preds_col].abs() + float(epsilon)
 
         # Initialize the quantile regressor
         qrf = RandomForestQuantileRegressor(q=quantiles, **best_params)
@@ -870,14 +897,25 @@ class LPCI:
             interval_df.loc[index, "opt_lower_q"] = opt_lower_q
             interval_df.loc[index, "opt_upper_q"] = opt_upper_q
 
-        # Add confidence intervals
-        interval_df["lower_conf"] = interval_df[self.preds_col] + interval_df[
-            f"{target_col}_lower_conf"
-        ]
-        interval_df["upper_conf"] = interval_df[self.preds_col] + interval_df[
-            f"{target_col}_upper_conf"
-        ]
-
+        # 7) Add confidence intervals on ORIGINAL residual scale, then add to yhat
+        if standarize_residuals:
+            # predicted quantiles are for Z = (Y-Ŷ)/s; rescale by s to get ε-quantiles
+            interval_df["lower_conf"] = (
+                interval_df[self.preds_col]
+                + interval_df[f"{target_col}_lower_conf"] * interval_df["scale"]
+            )
+            interval_df["upper_conf"] = (
+                interval_df[self.preds_col]
+                + interval_df[f"{target_col}_upper_conf"] * interval_df["scale"]
+            )
+        else:
+            # original behavior (target_col holds ε-quantiles directly)
+            interval_df["lower_conf"] = (
+                interval_df[self.preds_col] + interval_df[f"{target_col}_lower_conf"]
+            )
+            interval_df["upper_conf"] = (
+                interval_df[self.preds_col] + interval_df[f"{target_col}_upper_conf"]
+            )
         if return_fitted_estimators:
             return interval_df, fitted_estimators
         
