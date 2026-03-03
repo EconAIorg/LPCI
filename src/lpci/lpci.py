@@ -1,7 +1,5 @@
 """
 This module implements the LPCI algorithm for regression forecasting models.
-It supports the use of a RandomForestQuantileRegressor for generating predictions
-and confidence intervals.
 """
 
 import warnings
@@ -9,7 +7,7 @@ from typing import Union
 
 import pandas as pd
 import numpy as np
-from sklearn_quantile import RandomForestQuantileRegressor
+from sklearn.base import clone
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from panelsplit import PanelSplit
 from joblib import Parallel, delayed
@@ -20,7 +18,6 @@ import os
 class LPCI:
     """
     Class that implements the LPCI algorithm for a regression forecasting model.
-    Currently only the use of a RandomForestQuantileRegressor is supported.
 
     Args
     ----
@@ -171,7 +168,7 @@ class LPCI:
         return n_splits
 
     def _predict_split(
-        self, fitted_estimator: RandomForestQuantileRegressor, X_test: pd.DataFrame
+        self, fitted_estimator, X_test: pd.DataFrame
     ):
         """
         Method that generates the predictions of the quantile regression forest.
@@ -194,10 +191,12 @@ class LPCI:
             Index of the test set.
         """
 
-        # shape (n_quantiles, n_samples)
         preds = fitted_estimator.predict(X_test)
+        # sklearn_quantile returns (n_quantiles, n_samples); normalize to (n_samples, n_quantiles)
+        if preds.ndim == 2 and preds.shape[0] != len(X_test):
+            preds = preds.T
 
-        return preds.T, X_test.index
+        return preds, X_test.index
 
     def _cv_strategy_check(self, df, return_compatible_strategies: bool = False):
         """
@@ -313,12 +312,14 @@ class LPCI:
         """
         estimator, X_test, split_index = args
         preds = estimator.predict(X_test)
-        return preds.T, X_test.index
+        # sklearn_quantile returns (n_quantiles, n_samples); normalize to (n_samples, n_quantiles)
+        if preds.ndim == 2 and preds.shape[0] != len(X_test):
+            preds = preds.T
+        return preds, X_test.index
 
-    def nonconformity_score(self, df: pd.DataFrame) -> pd.DataFrame:
+    def compute_residuals(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Method that calculates the nonconformity score of the model on a given dataset.
-        Since this is a class for implementing LPCI on a regression model, the nonconformity score is the residuals.
+        Method that computes residuals (true - predicted) for a given dataset.
 
         Parameters
         ----
@@ -332,7 +333,7 @@ class LPCI:
         ----
 
         pd.DataFrame
-            DataFrame containing the nonconformity scores of the model.
+            DataFrame containing the residuals of the model.
         """
 
         df = df.copy()
@@ -345,7 +346,7 @@ class LPCI:
         df: pd.DataFrame,
         col: str,
         lags: list,
-        decay: float = None,
+        alpha: float = None,
         adjust: bool = True,
         fillna: Union[float, int] = None,
     ) -> pd.DataFrame:
@@ -364,12 +365,13 @@ class LPCI:
         lags: list
             List of integers with the lags to generate.
 
-        decay: float
-            Decay factor for exponential smoothing of the residuals. If None, no decay is applied.
-        
+        alpha: float
+            The alpha (smoothing factor) passed to pandas.ewm(alpha=...) for exponential smoothing
+            of the lagged values. If None, no smoothing is applied. See pandas.DataFrame.ewm() for details.
+
         adjust: bool
             Whether to adjust the weights for the exponential moving average.
-            Only used if decay is not None.
+            Only used if alpha is not None.
             Pandas default is True. When adjust = False, weighted averages are calculated recursively.
 
         fillna: Union[float, int]
@@ -388,9 +390,9 @@ class LPCI:
             #generate the lagged variables
             df[f'{col}_lag_{lag}'] = df.groupby(self.unit_col, observed = True)[col].shift(lag + self.eval_delay)
 
-            #smooth the residuals if decay is not None
-            if decay is not None:
-                df[f'{col}_lag_{lag}'] = df.groupby(self.unit_col, observed = True)[f'{col}_lag_{lag}'].transform(lambda x: x.ewm(alpha = decay, adjust = adjust).mean())
+            #smooth the residuals if alpha is not None
+            if alpha is not None:
+                df[f'{col}_lag_{lag}'] = df.groupby(self.unit_col, observed = True)[f'{col}_lag_{lag}'].transform(lambda x: x.ewm(alpha = alpha, adjust = adjust).mean())
 
             #fill NaNs if fillna is not None
             if fillna is not None:
@@ -439,7 +441,7 @@ class LPCI:
     def prepare_df(
         self,
         window_size: int,
-        decay: float = None,
+        alpha: float = None,
         adjust: bool = True,
         fillna: Union[float, int] = None,
         cat_method: dict = None,
@@ -453,12 +455,13 @@ class LPCI:
         window_size:int
             Size of the window to generate the lagged variables.
 
-        decay: float
-            Decay factor for exponential smoothing of the residuals. If None, no decay is applied.
+        alpha: float
+            The alpha (smoothing factor) passed to pandas.ewm(alpha=...) for exponential smoothing
+            of the lagged residuals. If None, no smoothing is applied. See pandas.DataFrame.ewm() for details.
 
         fillna: Union[float, int]
             Value to fill NaNs in the residuals.
-            
+
         adjust: bool
             Whether to adjust the weights for the exponential moving average.
             Pandas default is True. When adjust = False, weighted averages are calculated recursively.
@@ -482,7 +485,7 @@ class LPCI:
         """
 
         # first generate nonconformity scores (residuals)
-        df = self.nonconformity_score(self.df)
+        df = self.compute_residuals(self.df)
 
         # now generate the lagged residuals
         lags = np.arange(1, window_size + 1)
@@ -491,7 +494,7 @@ class LPCI:
             df=df, 
             col="residuals", 
             lags=lags, 
-            decay=decay,
+            alpha=alpha,
             adjust=adjust,
             fillna=fillna
             )
@@ -554,9 +557,10 @@ class LPCI:
         grid_search_kwargs: dict = None,
         cv_kwargs: Union[int, dict] = None,
         return_best_estimator: bool = False,
+        estimator=None,
     ):
         """
-        Method that fits the quantile regression forest. GridSearchCV is used to tune the hyperparameters.
+        Method that tunes hyperparameters for a quantile regression estimator using GridSearchCV or RandomizedSearchCV.
         We restrict the training data only to time periods before the last calibration time.
         We optionally allow for time series cross-validation using PanelSplit. This is preferred, but not strictly necessary.
         In cases where you have a small calibration dataset, eval_delay >=1 and/or prefer a larger window size, using panel_split may not be feasible.
@@ -603,6 +607,14 @@ class LPCI:
         return_best_estimator: bool
             Whether to return the best estimator.
 
+        estimator: sklearn-compatible estimator, optional
+            A pre-instantiated multi-quantile estimator to use instead of the default
+            RandomForestQuantileRegressor. Must satisfy:
+            - sklearn-compatible interface (fit / predict / get_params / set_params)
+            - predict(X) returns shape (n_samples, n_quantiles)
+            - configured with quantile levels matching gen_quantiles(alpha, n_quantiles)
+            If None, defaults to RandomForestQuantileRegressor(q=quantiles) from sklearn-quantile.
+
         Returns
         ------
         best_params_: dict
@@ -611,8 +623,8 @@ class LPCI:
         quantiles: np.array
             Array containing the quantiles for the prediction.
 
-        best_estimator_: RandomForestQuantileRegressor (optional)
-            Fitted quantile regression forest.
+        best_estimator_: estimator (optional)
+            Fitted estimator. Only returned when return_best_estimator=True.
         """
 
         # Check that the time_col is of type int
@@ -642,7 +654,10 @@ class LPCI:
         quantiles = self.gen_quantiles(alpha, n_quantiles)
 
         # Initialize the quantile regressor
-        qrf = RandomForestQuantileRegressor(q=quantiles)
+        if estimator is None:
+            from sklearn_quantile import RandomForestQuantileRegressor
+            estimator = RandomForestQuantileRegressor(q=quantiles)
+        qrf = clone(estimator)
 
         #first generate the required cross-validation strategy
         if isinstance(cv_kwargs, int):
@@ -750,7 +765,8 @@ class LPCI:
         n_quantiles:int = 5,
         panel_split_kwargs:dict = None,
         n_jobs:int = -1,
-        return_fitted_estimators:bool = False
+        return_fitted_estimators:bool = False,
+        estimator=None,
         ):
         
         """
@@ -790,8 +806,25 @@ class LPCI:
         return_fitted_estimators: bool
             Whether to return the fitted estimators.
 
+        estimator: sklearn-compatible estimator, optional
+            A pre-instantiated multi-quantile estimator to use instead of the default
+            RandomForestQuantileRegressor. Must satisfy:
+            - sklearn-compatible interface (fit / predict / get_params / set_params)
+            - predict(X) returns shape (n_samples, n_quantiles)
+            - configured with quantile levels matching gen_quantiles(alpha, n_quantiles)
+            If None, defaults to RandomForestQuantileRegressor(q=quantiles, **best_params).
+
         Returns
         ------
+        interval_df: pd.DataFrame
+            Test-set observations with added columns: per-quantile predictions
+            (q_<value>), residual confidence bounds (<target_col>_lower_conf,
+            <target_col>_upper_conf), optimal quantile pairs (opt_lower_q,
+            opt_upper_q), and final interval bounds (lower_conf, upper_conf).
+
+        fitted_estimators: list
+            List of fitted estimator objects, one per PanelSplit fold.
+            Only returned when return_fitted_estimators=True.
         """
 
         #check that the time_col is of type int
@@ -820,7 +853,13 @@ class LPCI:
         interval_df.index.name = None
 
         # Initialize the quantile regressor
-        qrf = RandomForestQuantileRegressor(q=quantiles, **best_params)
+        if estimator is None:
+            from sklearn_quantile import RandomForestQuantileRegressor
+            qrf = RandomForestQuantileRegressor(q=quantiles, **best_params)
+        else:
+            qrf = clone(estimator)
+            if best_params:
+                qrf.set_params(**best_params)
 
         # Perform cross-validation predictions
         fitted_estimators = panel_split.cross_val_fit(
