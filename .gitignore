@@ -7,3 +7,5 @@ __pycache__/
 
 #ignore virtual environment
 .venv
+
+catboost_info
