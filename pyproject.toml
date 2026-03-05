@@ -1,6 +1,6 @@
 [project]
 name = "lpci"
-version = "0.1.0"
+version = "1.0.0"
 description = "This is a package to implement the LPCI algorithm for a regression forecasting model."
 authors = [
     {name = "Ben Seimon", email = "benjamin.seimon@bse.eu"},
@@ -11,12 +11,9 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "pandas>=2.0.0",
-    "panelsplit>=0.4.2,<0.5",
+    "scikit-learn>=1.0",
     "seaborn>=0.13.2,<0.14",
 ]
-
-[project.optional-dependencies]
-sklearn-quantile = ["sklearn-quantile>=0.0.30"]
 
 [tool.uv]
 dev-dependencies = [
@@ -26,11 +23,22 @@ dev-dependencies = [
     "black>=24.10.0,<25",
     "xgboost>=2.0",
     "catboost>=1.0",
+    "panelsplit>=1",
+    "sklearn-quantile>=0.0.30",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lpci"]
 
+
+
 [build-system]
-requires = ["hatchling"]
+requires = [
+    "hatchling>=1.24",
+    "hatch-vcs>=0.4",
+]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+

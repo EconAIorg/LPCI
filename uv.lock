@@ -809,18 +809,14 @@ wheels = [
 
 [[package]]
 name = "lpci"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "panelsplit" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "seaborn" },
-]
-
-[package.optional-dependencies]
-sklearn-quantile = [
-    { name = "sklearn-quantile" },
 ]
 
 [package.dev-dependencies]
@@ -828,27 +824,30 @@ dev = [
     { name = "black" },
     { name = "catboost" },
     { name = "ipykernel" },
+    { name = "panelsplit", version = "1.1.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "panelsplit", version = "2.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pylint" },
     { name = "pytest" },
+    { name = "sklearn-quantile" },
     { name = "xgboost" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "pandas", specifier = ">=2.0.0" },
-    { name = "panelsplit", specifier = ">=0.4.2,<0.5" },
+    { name = "scikit-learn", specifier = ">=1.0" },
     { name = "seaborn", specifier = ">=0.13.2,<0.14" },
-    { name = "sklearn-quantile", marker = "extra == 'sklearn-quantile'", specifier = ">=0.0.30" },
 ]
-provides-extras = ["sklearn-quantile"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "black", specifier = ">=24.10.0,<25" },
     { name = "catboost", specifier = ">=1.0" },
     { name = "ipykernel", specifier = ">=6.29.5,<7" },
+    { name = "panelsplit", specifier = ">=1" },
     { name = "pylint", specifier = ">=3.3.1,<4" },
     { name = "pytest", specifier = ">=8.0" },
+    { name = "sklearn-quantile", specifier = ">=0.0.30" },
     { name = "xgboost", specifier = ">=2.0" },
 ]
 
@@ -1285,22 +1284,54 @@ wheels = [
 
 [[package]]
 name = "panelsplit"
-version = "0.4.2"
+version = "1.1.2"
 source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "joblib" },
-    { name = "matplotlib" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "pandas", version = "3.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "tqdm" },
+resolution-markers = [
+    "python_full_version < '3.11'",
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/65/8fe0bd296a0d558a7f5779e38da639be917de64a87ab449cabe0c98857a2/panelsplit-0.4.2.tar.gz", hash = "sha256:4c199aa5c0fa894f6beb5210bfe2f792aa5eb7d495ef914a3a2a36c96a6b74ec", size = 62784 }
+dependencies = [
+    { name = "joblib", marker = "python_full_version < '3.11'" },
+    { name = "matplotlib", marker = "python_full_version < '3.11'" },
+    { name = "narwhals", marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "tqdm", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b6/8d/8aafe08707a6ebbc9f3b2c6355bbc61629cad0d5d40fefb9c0456dabf1d5/panelsplit-1.1.2.tar.gz", hash = "sha256:6a4b47683ffd79f14d53a0de37bf93858448feaa9ccfb5c789b0589a58e81ef1", size = 362389 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/94/574661a6cdc73c80949db0db629adfda799f0605906c97173b1643ea2887/panelsplit-0.4.2-py3-none-any.whl", hash = "sha256:375e4794b15d9490bdef6f8df6c1107a9d5ee8775d4525780e35f2fc50cc6c77", size = 8592 },
+    { url = "https://files.pythonhosted.org/packages/d0/de/4917409b7fa9407769c850ef621250912d30e5216342a6c1c5ab157b6c10/panelsplit-1.1.2-py3-none-any.whl", hash = "sha256:fd579b56487a2a5e44e5de9b83aae6cc8c39056c9ad64d68c555ad2859d88a04", size = 24048 },
+]
+
+[[package]]
+name = "panelsplit"
+version = "2.0.5"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.14' and sys_platform == 'win32'",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
+    "python_full_version == '3.11.*' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+]
+dependencies = [
+    { name = "joblib", marker = "python_full_version >= '3.11'" },
+    { name = "matplotlib", marker = "python_full_version >= '3.11'" },
+    { name = "narwhals", marker = "python_full_version >= '3.11'" },
+    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pandas", version = "3.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "tqdm", marker = "python_full_version >= '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5c/f6/af62e4c5880c395da60a3a1cc41dc9a2b58bcc524fdcf9301ba3c23e75ad/panelsplit-2.0.5.tar.gz", hash = "sha256:22d0980a4e466e7ab7be5dc37a1dd1889b48dd2678f99d92af2e80bae6daaa69", size = 240832 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f4/9b/a825c4808ac489eb6bed06d138e309627b02a8bcef84ba6280bc0b34efc7/panelsplit-2.0.5-py3-none-any.whl", hash = "sha256:3a165a99b7a05235f99e34e944609d40125ed86883b5eb78de4b6656bbc52ffd", size = 54489 },
 ]
 
 [[package]]

@@ -13,11 +13,15 @@ CatBoostRegressor = pytest.importorskip(
 
 def _run_fit_predict(lpci_instance, estimator):
     """Helper that runs fit_predict with a given estimator and returns interval_df."""
+    from panelsplit import PanelSplit
+
     lpci = lpci_instance
     alpha = 0.1
     n_quantiles = 2
     df, features, target_col = lpci.prepare_df(window_size=1)
-    panel_split_kwargs = {"gap": 0, "test_size": 1, "progress_bar": False}
+
+    n_splits = lpci.get_n_splits(df[lpci.time_col].unique(), min(lpci.unique_test_time))
+    cv = PanelSplit(df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1, progress_bar=False)
 
     return lpci.fit_predict(
         df=df,
@@ -26,7 +30,7 @@ def _run_fit_predict(lpci_instance, estimator):
         best_params={},
         alpha=alpha,
         n_quantiles=n_quantiles,
-        panel_split_kwargs=panel_split_kwargs,
+        cv=cv,
         n_jobs=1,
         estimator=estimator,
     )

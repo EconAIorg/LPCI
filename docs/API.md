@@ -22,6 +22,9 @@ estimator = xgb.XGBRegressor(
     random_state=42,
 )
 
+n_splits = lpci.get_n_splits(df[lpci.time_col].unique(), min(lpci.unique_test_time))
+cv = PanelSplit(df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1)
+
 interval_df = lpci.fit_predict(
     df=df,
     features=features,
@@ -29,7 +32,7 @@ interval_df = lpci.fit_predict(
     best_params={},
     alpha=alpha,
     n_quantiles=n_quantiles,
-    panel_split_kwargs=panel_split_kwargs,
+    cv=cv,
     estimator=estimator,
 )
 ```
@@ -39,20 +42,22 @@ To tune XGBoost hyperparameters first:
 ```python
 from scipy.stats import randint
 
+from sklearn.model_selection import RandomizedSearchCV
+
+search = RandomizedSearchCV(
+    estimator,
+    param_distributions={"n_estimators": randint(50, 300), "max_depth": randint(3, 8)},
+    n_iter=10,
+    n_jobs=-1,
+    cv=3,
+)
 best_params, quantiles = lpci.tune(
     df=df,
     features=features,
     target_col=target_col,
     alpha=alpha,
     n_quantiles=n_quantiles,
-    grid_search_method="RandomizedSearchCV",
-    grid_search_kwargs={
-        "param_distributions": {"n_estimators": randint(50, 300), "max_depth": randint(3, 8)},
-        "n_iter": 10,
-        "n_jobs": -1,
-    },
-    cv_kwargs=3,
-    estimator=estimator,
+    search=search,
 )
 ```
 
@@ -74,6 +79,9 @@ estimator = CatBoostRegressor(
     verbose=0,
 )
 
+n_splits = lpci.get_n_splits(df[lpci.time_col].unique(), min(lpci.unique_test_time))
+cv = PanelSplit(df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1)
+
 interval_df = lpci.fit_predict(
     df=df,
     features=features,
@@ -81,7 +89,7 @@ interval_df = lpci.fit_predict(
     best_params={},
     alpha=alpha,
     n_quantiles=n_quantiles,
-    panel_split_kwargs=panel_split_kwargs,
+    cv=cv,
     estimator=estimator,
 )
 ```
@@ -133,10 +141,10 @@ LPCI(
 
 ---
 
-### `LPCI.compute_residuals`
+### `LPCI.nonconformity_score`
 
 ```python
-compute_residuals(df: pd.DataFrame) -> pd.DataFrame
+nonconformity_score(df: pd.DataFrame) -> pd.DataFrame
 ```
 
 Computes residuals (`true - predicted`) and appends them as a `"residuals"` column.
@@ -206,7 +214,7 @@ prepare_df(
 ) -> tuple[pd.DataFrame, list, str]
 ```
 
-Convenience method that chains `compute_residuals` → `lag` → (optional) `cat_engineer` to produce a model-ready DataFrame.
+Convenience method that chains `nonconformity_score` → `lag` → (optional) `cat_engineer` to produce a model-ready DataFrame.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -240,6 +248,23 @@ Generates an array of quantile levels for the prediction interval.
 
 ---
 
+### `LPCI.get_n_splits`
+
+```python
+get_n_splits(unique_time: list, desired_test_start_time: int) -> int
+```
+
+Computes the number of CV splits needed so that the first test fold starts at `desired_test_start_time`. Use this when constructing a `PanelSplit` (or similar) CV object for `fit_predict`.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `unique_time` | `list` | Unique time periods in the dataset. |
+| `desired_test_start_time` | `int` | Desired start time for the first test fold (typically `min(lpci.unique_test_time)`). |
+
+**Returns:** `int` — number of splits to pass as `n_splits`.
+
+---
+
 ### `LPCI.tune`
 
 ```python
@@ -249,15 +274,12 @@ tune(
     target_col: str,
     alpha: float,
     n_quantiles: int = 5,
-    grid_search_method: str = "GridSearchCV",
-    grid_search_kwargs: dict = None,
-    cv_kwargs: Union[int, dict] = None,
+    search=None,
     return_best_estimator: bool = False,
-    estimator=None,
 )
 ```
 
-Tunes hyperparameters for a quantile regression estimator. Training uses only calibration-set observations.
+Tunes hyperparameters for a quantile regression estimator. Training uses only calibration-set observations. The caller provides a fully configured search object — the estimator, CV strategy, and parameter grid are all the user's responsibility.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -266,16 +288,29 @@ Tunes hyperparameters for a quantile regression estimator. Training uses only ca
 | `target_col` | `str` | Target column name (typically `"residuals"`). |
 | `alpha` | `float` | Significance level. |
 | `n_quantiles` | `int` | Number of quantiles per side. Default `5`. |
-| `grid_search_method` | `str` | `"GridSearchCV"` or `"RandomizedSearchCV"`. |
-| `grid_search_kwargs` | `dict` | Arguments for the grid search. Must include `"param_grid"` (GridSearchCV) or `"param_distributions"` (RandomizedSearchCV). |
-| `cv_kwargs` | `int` or `dict` | Cross-validation strategy. An integer uses standard k-fold. A dict is passed to `PanelSplit` for time-series CV. |
-| `return_best_estimator` | `bool` | If `True`, also return the fitted estimator. |
-| `estimator` | sklearn estimator | Pre-instantiated multi-quantile estimator. Must be sklearn-compatible and its `predict(X)` must return shape `(n_samples, n_quantiles)`. Quantile levels must match `gen_quantiles(alpha, n_quantiles)`. If `None`, defaults to `RandomForestQuantileRegressor`. |
+| `search` | sklearn search object | Pre-instantiated search object (e.g. `GridSearchCV`, `RandomizedSearchCV`). The estimator, CV strategy, parameter grid/distributions, and quantile levels must be configured by the caller. |
+| `return_best_estimator` | `bool` | If `True`, also return the fitted best estimator. |
 
 **Returns:**
 - `best_params_: dict` — best hyperparameters found.
 - `quantiles: np.ndarray` — quantile levels used.
 - `best_estimator_` *(only if `return_best_estimator=True`)* — fitted estimator.
+
+**Example:**
+
+```python
+from sklearn.model_selection import GridSearchCV
+from sklearn_quantile import RandomForestQuantileRegressor
+
+quantiles = lpci.gen_quantiles(alpha=0.1, n_quantiles=5)
+search = GridSearchCV(
+    RandomForestQuantileRegressor(q=quantiles),
+    param_grid={"n_estimators": [50, 100, 200]},
+    cv=3,
+)
+best_params, quantiles = lpci.tune(df=df, features=features, target_col=target_col,
+                                   alpha=0.1, n_quantiles=5, search=search)
+```
 
 ---
 
@@ -306,14 +341,14 @@ fit_predict(
     best_params: dict,
     alpha: float,
     n_quantiles: int = 5,
-    panel_split_kwargs: dict = None,
+    cv=None,
     n_jobs: int = -1,
     return_fitted_estimators: bool = False,
     estimator=None,
 )
 ```
 
-End-to-end method: fits the quantile estimator via rolling `PanelSplit` cross-validation and generates prediction intervals on the test set.
+End-to-end method: fits the quantile estimator via rolling cross-validation and generates prediction intervals on the test set. The caller provides a pre-instantiated CV splitter (e.g. `PanelSplit`, `TimeSeriesSplit`).
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -323,7 +358,7 @@ End-to-end method: fits the quantile estimator via rolling `PanelSplit` cross-va
 | `best_params` | `dict` | Hyperparameters to pass to the estimator. |
 | `alpha` | `float` | Significance level. |
 | `n_quantiles` | `int` | Number of quantiles per side. Default `5`. |
-| `panel_split_kwargs` | `dict` | Arguments for `PanelSplit` (e.g. `gap`, `test_size`). `n_splits` is computed automatically. |
+| `cv` | CV splitter | Pre-instantiated cross-validator with a `split(X, y)` method returning positional integer `(train_idx, test_idx)` tuples (sklearn interface). Use `get_n_splits` to compute the correct `n_splits` for `PanelSplit`. |
 | `n_jobs` | `int` | Number of parallel jobs for prediction. `-1` uses all CPU cores. `1` runs sequentially. |
 | `return_fitted_estimators` | `bool` | If `True`, also return the list of fitted estimators. |
 | `estimator` | sklearn estimator | Pre-instantiated multi-quantile estimator. Must be sklearn-compatible and its `predict(X)` must return shape `(n_samples, n_quantiles)`. Quantile levels must match `gen_quantiles(alpha, n_quantiles)`. If `None`, defaults to `RandomForestQuantileRegressor`. |
@@ -335,6 +370,20 @@ End-to-end method: fits the quantile estimator via rolling `PanelSplit` cross-va
   - `opt_lower_q`, `opt_upper_q` — optimal quantile pair used per observation
   - `lower_conf`, `upper_conf` — final prediction interval bounds (point prediction ± residual bound)
 - `fitted_estimators: list` *(only if `return_fitted_estimators=True`)* — one fitted estimator per fold.
+
+**Example:**
+
+```python
+from panelsplit import PanelSplit
+
+n_splits = lpci.get_n_splits(df[lpci.time_col].unique(), min(lpci.unique_test_time))
+cv = PanelSplit(df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1)
+
+interval_df = lpci.fit_predict(
+    df=df, features=features, target_col=target_col,
+    best_params=best_params, alpha=0.1, n_quantiles=5, cv=cv,
+)
+```
 
 ---
 

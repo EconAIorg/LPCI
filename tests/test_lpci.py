@@ -13,9 +13,9 @@ def test_init(lpci_instance):
     assert len(lpci.df) == len(lpci.cal_preds) + len(lpci.test_preds)
 
 
-def test_compute_residuals(lpci_instance):
+def test_nonconformity_score(lpci_instance):
     lpci = lpci_instance
-    df = lpci.compute_residuals(lpci.df)
+    df = lpci.nonconformity_score(lpci.df)
     assert "residuals" in df.columns
     expected = lpci.df[lpci.true_col] - lpci.df[lpci.preds_col]
     assert (df["residuals"] == expected).all()
@@ -23,7 +23,7 @@ def test_compute_residuals(lpci_instance):
 
 def test_lag_basic(lpci_instance):
     lpci = lpci_instance
-    df = lpci.compute_residuals(lpci.df)
+    df = lpci.nonconformity_score(lpci.df)
     lags = [1, 2]
     result = lpci.lag(df, "residuals", lags)
     for lag in lags:
@@ -32,7 +32,7 @@ def test_lag_basic(lpci_instance):
 
 def test_lag_alpha(lpci_instance):
     lpci = lpci_instance
-    df = lpci.compute_residuals(lpci.df)
+    df = lpci.nonconformity_score(lpci.df)
     lags = [1]
     plain = lpci.lag(df, "residuals", lags)
     smoothed = lpci.lag(df, "residuals", lags, alpha=0.5)
@@ -44,7 +44,7 @@ def test_lag_alpha(lpci_instance):
 
 def test_lag_fillna(lpci_instance):
     lpci = lpci_instance
-    df = lpci.compute_residuals(lpci.df)
+    df = lpci.nonconformity_score(lpci.df)
     result = lpci.lag(df, "residuals", [1, 2], fillna=0)
     lag_cols = [c for c in result.columns if "residuals_lag_" in c]
     assert result[lag_cols].isna().sum().sum() == 0
@@ -52,7 +52,7 @@ def test_lag_fillna(lpci_instance):
 
 def test_cat_engineer(lpci_instance):
     lpci = lpci_instance
-    df = lpci.compute_residuals(lpci.df)
+    df = lpci.nonconformity_score(lpci.df)
     result = lpci.cat_engineer(df, {"unit": "one_hot_encode"})
     dummy_cols = [c for c in result.columns if c.startswith("cat_unit_")]
     assert len(dummy_cols) > 0
@@ -88,6 +88,8 @@ def test_fit_predict_returns_df(lpci_instance, fitted_interval_df):
 
 
 def test_fit_predict_custom_estimator(lpci_instance):
+    from panelsplit import PanelSplit
+
     lpci = lpci_instance
     window_size = 1
     df, features, target_col = lpci.prepare_df(window_size=window_size)
@@ -96,7 +98,9 @@ def test_fit_predict_custom_estimator(lpci_instance):
     n_quantiles = 2
     quantiles = lpci.gen_quantiles(alpha, n_quantiles)
     custom_estimator = RandomForestQuantileRegressor(q=quantiles, n_estimators=10, random_state=0)
-    panel_split_kwargs = {"gap": 0, "test_size": 1, "progress_bar": False}
+
+    n_splits = lpci.get_n_splits(df[lpci.time_col].unique(), min(lpci.unique_test_time))
+    cv = PanelSplit(df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1, progress_bar=False)
 
     result = lpci.fit_predict(
         df=df,
@@ -105,7 +109,7 @@ def test_fit_predict_custom_estimator(lpci_instance):
         best_params={},
         alpha=alpha,
         n_quantiles=n_quantiles,
-        panel_split_kwargs=panel_split_kwargs,
+        cv=cv,
         n_jobs=1,
         estimator=custom_estimator,
     )

@@ -30,7 +30,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: uv sync --extra sklearn-quantile
+        run: uv sync
 
       - name: Run tests
         run: uv run pytest
