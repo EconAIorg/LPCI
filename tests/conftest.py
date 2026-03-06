@@ -51,7 +51,7 @@ def fitted_interval_df(lpci_instance):
     best_params = {"n_estimators": 10, "random_state": 0}
 
     n_splits = lpci.get_n_splits(df[lpci.time_col].unique(), min(lpci.unique_test_time))
-    cv = PanelSplit(df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1, progress_bar=False)
+    cv = PanelSplit(df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1)
 
     return lpci.fit_predict(
         df=df,

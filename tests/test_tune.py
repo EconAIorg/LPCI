@@ -52,7 +52,7 @@ def test_tune_randomized_panelsplit(lpci_instance):
     cal_df = df[df[lpci.time_col].isin(lpci.unique_cal_time)]
     n_unique_cal = len(cal_df[lpci.time_col].unique())
     n_splits = max(2, n_unique_cal - 1)
-    cv = PanelSplit(cal_df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1, progress_bar=False)
+    cv = PanelSplit(cal_df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1)
 
     estimator = RandomForestQuantileRegressor(q=quantiles)
     search = RandomizedSearchCV(
