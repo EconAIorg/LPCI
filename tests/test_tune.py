@@ -37,7 +37,7 @@ def test_tune_gridsearch_kfold(lpci_instance):
 
 
 def test_tune_randomized_panelsplit(lpci_instance):
-    from panelsplit import PanelSplit
+    from panelsplit.cross_validation import PanelSplit
     from scipy.stats import randint
 
     lpci = lpci_instance

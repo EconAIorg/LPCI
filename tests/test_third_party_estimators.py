@@ -13,7 +13,7 @@ CatBoostRegressor = pytest.importorskip(
 
 def _run_fit_predict(lpci_instance, estimator):
     """Helper that runs fit_predict with a given estimator and returns interval_df."""
-    from panelsplit import PanelSplit
+    from panelsplit.cross_validation import PanelSplit
 
     lpci = lpci_instance
     alpha = 0.1

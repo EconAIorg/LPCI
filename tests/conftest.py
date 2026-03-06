@@ -40,7 +40,7 @@ def lpci_instance():
 
 @pytest.fixture(scope="session")
 def fitted_interval_df(lpci_instance):
-    from panelsplit import PanelSplit
+    from panelsplit.cross_validation import PanelSplit
 
     lpci = lpci_instance
     window_size = 1

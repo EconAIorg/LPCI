@@ -374,7 +374,7 @@ End-to-end method: fits the quantile estimator via rolling cross-validation and 
 **Example:**
 
 ```python
-from panelsplit import PanelSplit
+from panelsplit.cross_validation import PanelSplit
 
 n_splits = lpci.get_n_splits(df[lpci.time_col].unique(), min(lpci.unique_test_time))
 cv = PanelSplit(df[lpci.time_col], n_splits=n_splits, gap=0, test_size=1)

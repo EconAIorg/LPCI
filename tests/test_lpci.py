@@ -88,7 +88,7 @@ def test_fit_predict_returns_df(lpci_instance, fitted_interval_df):
 
 
 def test_fit_predict_custom_estimator(lpci_instance):
-    from panelsplit import PanelSplit
+    from panelsplit.cross_validation import PanelSplit
 
     lpci = lpci_instance
     window_size = 1
