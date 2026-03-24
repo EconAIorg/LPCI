@@ -111,7 +111,7 @@ class LPCI:
         )
 
         # check that the time_col is of type int
-        self._dtype_check(self.df, self.time_col, np.dtype("int64"))
+        self._dtype_check(self.df, self.time_col, "numeric")
 
         # obtain the unique time periods in the calibration set
         self.unique_cal_time = sorted(self.cal_preds[self.time_col].unique())
@@ -132,10 +132,16 @@ class LPCI:
             Name of the column to check.
 
         dtype: dtype
-            Data type to check.
+            Data type to check. Pass ``"numeric"`` to accept any numeric dtype,
+            or a specific dtype (e.g. ``"category"``) for an exact match.
         """
 
-        if df[col].dtype != dtype:
+        if dtype == "numeric":
+            if not pd.api.types.is_numeric_dtype(df[col]):
+                raise ValueError(
+                    f"The column {col} must be numeric. Currently, the type is {df[col].dtype}."
+                )
+        elif df[col].dtype != dtype:
             raise ValueError(
                 f"The column {col} must be of type {dtype}. Currently, the type is {df[col].dtype}."
             )
@@ -506,7 +512,7 @@ class LPCI:
             The fitted best estimator from ``search``.
         """
 
-        self._dtype_check(df, self.time_col, np.dtype("int64"))
+        self._dtype_check(df, self.time_col, "numeric")
 
         train_df = (
             df[df[self.time_col].isin(self.unique_cal_time)]
@@ -648,7 +654,7 @@ class LPCI:
             One fitted estimator per CV fold.
         """
 
-        self._dtype_check(df, self.time_col, np.dtype("int64"))
+        self._dtype_check(df, self.time_col, "numeric")
 
         quantiles = self.gen_quantiles(alpha, n_quantiles)
 
